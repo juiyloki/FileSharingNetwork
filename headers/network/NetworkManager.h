@@ -9,54 +9,55 @@
 
 namespace network {
 
-class NetworkManager {
+    class NetworkManager {
 
-public:
+    public:
 
-    using tcp = boost::asio::ip::tcp;
+        using tcp = boost::asio::ip::tcp;
 
-    // Singleton accessor
-    static NetworkManager& instance();
+        // Singleton accessor
+        static NetworkManager& instance();
 
-    // Start listening for incoming connections
-    void startServer(unsigned short port);
+        // Start listening for incoming connections
+        void startServer(unsigned short port);
 
-    // Connect to a remote peer
-    void connectToPeer(const std::string& host, unsigned short port);
+        // Connect to a remote peer
+        void connectToPeer(const std::string& host, unsigned short port);
 
-    // Send message to specific peer
-    void sendMessage(const std::string& peerID, const std::string& message);
+        // Send message to specific peer
+        void sendMessage(const std::string& peerID, const std::string& message);
 
-    // Broadcast to all peers
-    void broadcastMessage(const std::string& message);
+        // Broadcast to all peers
+        void broadcastMessage(const std::string& message);
 
-    // Stop and close everything
-    void shutdown();
+        // Stop and close everything
+        void shutdown();
 
-    // Get current peers
-    std::vector<std::string> listPeers() const;
+        // Get Peer list.
+        std::vector<std::string> listPeerInfo() const;
 
-private:
+    private:
 
-    // Private constructor
-    NetworkManager();
-    ~NetworkManager();
+        // Private constructor
+        NetworkManager();
+        ~NetworkManager();
 
-    // No copy/move
-    NetworkManager(const NetworkManager&) = delete;
-    NetworkManager& operator=(const NetworkManager&) = delete;
+        // No copy/move
+        NetworkManager(const NetworkManager&) = delete;
+        NetworkManager& operator=(const NetworkManager&) = delete;
 
-    // Accept new connection
-    void doAccept();
+        // Accept new connection
+        void doAccept();
 
-    // Handle peer disconnect
-    void removePeer(const std::string& peerID);
+        // Handle peer disconnect
+        void removePeer(const std::string& peerID);
 
-    // Attributes
-    boost::asio::io_context ioContext_;
-    tcp::acceptor acceptor_;
-    std::unordered_map<std::string, std::shared_ptr<Peer>> peers_;
-    mutable std::mutex peersMutex_;
-};
+        // Attributes
+        boost::asio::io_context ioContext_;
+        tcp::acceptor acceptor_;
+        std::unordered_map<std::string, std::shared_ptr<Peer>> peers_;
+        mutable std::mutex peersMutex_;
+
+    };
 
 }
