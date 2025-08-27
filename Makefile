@@ -1,43 +1,27 @@
-# Compiler and flags
-CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -Iheaders
-LDFLAGS = -lboost_asio -pthread
+SRC_DIR  := source
+OBJ_DIR  := build
+BIN      := p2p
 
-# Directories
-SRC_DIR = source
-HDR_DIR = headers
-BLD_DIR = build
-BIN_DIR = $(BLD_DIR)/bin
-TEST_DIR = tests
+# all .cpp files under source
+SRCS := $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/network/*.cpp)
+OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 
-# All source files and headers are found recursively
-SOURCES = $(shell find $(SRC_DIR) -name '*.cpp')
-HEADERS = $(shell find $(HDR_DIR) -name '*.h')
-OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(BLD_DIR)/%.o)
+all: $(BIN)
 
-# Output binary
-TARGET = $(BIN_DIR)/p2p_file_sharing
+$(BIN): $(OBJS)
+	$(CXX) $(OBJS) -o $@ -lboost_system -lpthread
 
-# Default target
-all: $(TARGET)
-
-# Linking object files to create the executable
-$(TARGET): $(OBJECTS)
-	@mkdir -p $(BIN_DIR)
-	$(CXX) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
-
-# Compiling source files to object files
-$(BLD_DIR)/%.o: $(SRC_DIR)/%.cpp $(HEADERS)
+# generic build rule for all .cpp under source
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) -std=c++17 -Wall -Wextra -Iheaders -c $< -o $@
 
-# Cleaning build directory
+# network subdir rule
+$(OBJ_DIR)/network/%.o: $(SRC_DIR)/network/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) -std=c++17 -Wall -Wextra -Iheaders -c $< -o $@
+
 clean:
-	rm -rf $(BLD_DIR)
+	rm -rf $(OBJ_DIR) $(BIN)
 
-# Running the program
-run: $(TARGET)
-	./$(TARGET)
-
-# Phony targets
-.PHONY: all clean run
+.PHONY: all clean

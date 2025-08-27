@@ -15,7 +15,7 @@ public:
 
     using tcp = boost::asio::ip::tcp; 
 
-    // Constructor
+    // Constructor.
     Peer(std::shared_ptr<tcp::socket> socket, const std::string& peerID):
         socket_(std::move(socket)),
         peerID_(peerID),
@@ -24,38 +24,37 @@ public:
         disconnectHandler_(nullptr)
     {}
 
-    // Messaging
+    // Messaging.
     void sendMessage(const std::string& message);
     void startReceiving();
 
     // Identification:
-    // IP:port and unique ID
+    // IP:port and unique ID.
     std::string getAddress() const;
     const std::string& getPeerID() const;
 
-    // State
-    bool isConnected() const {
-        return socket_ && socket_->is_open();
-    }
+    // State.
+    bool isConnected() const;
     std::chrono::steady_clock::time_point lastActive() const;
     
-    // Callbacks 
-    // set by NetworkManager
+    // Callbacks:
+    // set by NetworkManager.
     void onMessage(std::function<void(const std::string&)>&& handler);
     void onDisconnect(std::function<void()>&& handler);
 
  
 private:
 
+    // Behaviour on message receive.
     void handleReceive(const boost::system::error_code& error, std::size_t bytes_transferred);
     
-    // Attributes
+    // Attributes.
     std::shared_ptr<boost::asio::ip::tcp::socket> socket_;
     std::array<char, 1024> buffer_;
     const std::string peerID_;
     std::chrono::steady_clock::time_point lastActiveTime_;
 
-    // Event handlers
+    // Event handlers.
     std::function<void(const std::string&)> messageHandler_;
     std::function<void()> disconnectHandler_;
 };
