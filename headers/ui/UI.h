@@ -25,7 +25,7 @@ namespace ui {
 
         // Managers' references.
         network::NetworkManager& net_;
-        log::LogManager& logger_ = log::LogManager::instance();
+        logging::LogManager& logger_ = logging::LogManager::instance();
 
         // Message data
         void showWelcome();

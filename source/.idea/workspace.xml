@@ -4,23 +4,9 @@
     <option name="/Default/RiderDebugger/RiderRestoreDecompile/RestoreDecompileSetting/@EntryValue" value="false" type="bool" />
     <option name="/Default/Housekeeping/GlobalSettingsUpgraded/IsUpgraded/@EntryValue" value="true" type="bool" />
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
-    <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexRemoved" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7238eb87-3510-4819-ad4e-7b37da1f9c73" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../.idea/workspace.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/../Makefile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../headers/log/LogManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/../headers/log/LogManager.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../headers/network/NetworkManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/../headers/network/NetworkManager.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../headers/ui/UI.h" beforeDir="false" afterPath="$PROJECT_DIR$/../headers/ui/UI.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/log/LogManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/log/LogManager.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/message/Message.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/message/Message.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/network/NetworkManager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/network/NetworkManager.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/network/Peer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/network/Peer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ui/UI.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/ui/UI.cpp" afterDir="false" />
-    </list>
+    <list default="true" id="7238eb87-3510-4819-ad4e-7b37da1f9c73" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -56,6 +42,7 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "workspace",
+    "last_opened_file_path": "/home/agata/Desktop/Things/GIT/Clones/FileSharingNetwork",
     "nodejs_package_manager_path": "npm",
     "vue.rearranger.settings.migration": "true"
   }
@@ -70,6 +57,7 @@
       <updated>1756385315797</updated>
       <workItem from="1756385316867" duration="3000" />
       <workItem from="1756385345225" duration="44000" />
+      <workItem from="1756385503956" duration="13000" />
     </task>
     <servers />
   </component>

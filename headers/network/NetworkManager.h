@@ -21,6 +21,11 @@ namespace network {
         // Start listening for incoming connections
         void startServer(unsigned short port);
 
+        // NetworkManager.h
+        std::string getOwnPeerID() const;
+        std::string getListeningAddress() const;
+
+
         // Connect to a remote peer
         void connectToPeer(const std::string& host, unsigned short port);
 

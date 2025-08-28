@@ -58,6 +58,17 @@ namespace network {
         });
     }
 
+
+    std::string NetworkManager::getListeningAddress() const {
+        try {
+            return acceptor_.local_endpoint().address().to_string() + ":" +
+                   std::to_string(acceptor_.local_endpoint().port());
+        } catch (...) {
+            return "";
+        }
+    }
+
+
     // Connect to peer by ID.
     void NetworkManager::connectToPeer(const std::string& host, unsigned short port) {
         auto socket = std::make_shared<tcp::socket>(ioContext_);

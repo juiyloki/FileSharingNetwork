@@ -12,34 +12,102 @@
 namespace ui {
 
     // Constructor stores reference to NetworkManager and LogManager.
-    UI::UI(network::NetworkManager& net) : net_(net), logger_(log::LogManager::instance()) {}
+    UI::UI(network::NetworkManager& net) : net_(net), logger_(logging::LogManager::instance()) {}
 
     // Display welcome message at startup.
     void UI::showWelcome() {
+
         std::cout << "=====================================\n";
-        std::cout << "  Welcome to Encrypted P2P Messenger\n";
+        std::cout << "  Welcome to P2P Messenger\n";
         std::cout << "=====================================\n\n";
+
+        // CHANGE: Show listening IP and port if available
+        auto address = net_.getListeningAddress();
+        if (!address.empty()) {
+            std::cout << "Listening on: " << address << "\n";
+        }
+
+        std::cout << "You can share the above address with other peers to connect.\n\n";
     }
+
+
 
     // Main UI loop handling user input.
     void UI::run() {
         showWelcome();
-        bool running = true;
-        while (running) {
-            showMainMenu();
-            int choice;
-            std::cin >> choice;
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    while (true) {
+        // CHANGE: updated menu
+        std::cout << "============================";
+        std::cout << "1. Connect to peer\n";
+        std::cout << "2. List peers\n";
+        std::cout << "3. Send message\n";
+        std::cout << "4. Inbox\n";
+        std::cout << "0. Exit\n";
+        std::cout << "============================";
+        std::cout << "Choice: ";
+        int choice;
+        std::cin >> choice;
+        std::cin.ignore();
 
-            switch(choice) {
-                case 1: listPeersMenu(); break;
-                case 2: sendMessageMenu(); break;
-                case 3: inboxMenu(); break;
-                case 0: running = false; break;
-                default: std::cout << "Invalid option.\n"; break;
+        switch (choice) {
+            case 1: { // CHANGE: new connect option
+                std::string ip;
+                unsigned short port;
+                std::cout << "Enter peer IP: ";
+                std::cin >> ip;
+                std::cout << "Enter peer port: ";
+                std::cin >> port;
+                std::cin.ignore();
+
+                net_.connectToPeer(ip, port);  // if void, cannot use in if
+                std::cout << "Attempted to connect to " << ip << ":" << port << "\n";
+                break;
             }
+            case 2: {
+                auto peers = net_.listPeerInfo();
+                for (auto &p : peers) std::cout << p << "\n";
+
+                break;
+            }
+            case 3: { // CHANGE: added submenu for send message
+                int sub;
+                std::cout << "Send Message:\n";    // CHANGE
+                std::cout << "1. To one peer\n";   // CHANGE
+                std::cout << "2. To all peers\n";  // CHANGE
+                std::cout << "0. Back\n";          // CHANGE
+                std::cin >> sub;
+                std::cin.ignore();
+
+                if (sub == 1) { // CHANGE: send to single peer
+                    std::string peerId;
+                    std::string msg;
+                    std::cout << "Enter peer ID: ";
+                    std::cin >> peerId;
+                    std::cin.ignore();
+                    std::cout << "Enter message: ";
+                    std::getline(std::cin, msg);
+                    net_.sendMessage(peerId, msg);   // use sendMessage instead of sendMessageToPeer
+                } else if (sub == 2) { // CHANGE: broadcast
+                    std::string msg;
+                    std::cout << "Enter message: ";
+                    std::getline(std::cin, msg);
+                    net_.broadcastMessage(msg); // CHANGE
+                }
+                break;
+            }
+            case 4: { // CHANGE: inbox moved down
+                inboxMenu();
+                break;
+            }
+            case 0:
+                return;
+            default:
+                std::cout << "Invalid option\n";
+                break;
         }
     }
+}
+
 
     // Display main menu options.
     void UI::showMainMenu() {

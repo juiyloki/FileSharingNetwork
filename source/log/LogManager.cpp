@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <iostream>
 
-namespace log {
+namespace logging {
 
     // Singleton instance.
     LogManager& LogManager::instance() {

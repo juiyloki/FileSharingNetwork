@@ -6,7 +6,7 @@
 #include <functional>
 #include "message/Message.h"
 
-namespace log {
+namespace logging {
 
     class LogManager {
 
