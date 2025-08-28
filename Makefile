@@ -1,27 +1,36 @@
-SRC_DIR  := source
-OBJ_DIR  := build
-BIN      := p2p
+CXX := g++
+CXXFLAGS := -std=c++17 -Wall -Iheaders
+LDFLAGS := -lpthread -lboost_system -lboost_thread
 
-# all .cpp files under source
-SRCS := $(wildcard $(SRC_DIR)/*.cpp) $(wildcard $(SRC_DIR)/network/*.cpp)
-OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
+SRC_DIR := source
+BUILD_DIR := build
+TARGET := p2p
 
-all: $(BIN)
+# List of all .cpp sources
+SRCS := $(wildcard $(SRC_DIR)/*.cpp) \
+        $(wildcard $(SRC_DIR)/log/*.cpp) \
+        $(wildcard $(SRC_DIR)/message/*.cpp) \
+        $(wildcard $(SRC_DIR)/network/*.cpp) \
+        $(wildcard $(SRC_DIR)/ui/*.cpp)
 
-$(BIN): $(OBJS)
-	$(CXX) $(OBJS) -o $@ -lboost_system -lpthread
+# Map .cpp → build/.o
+OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))
 
-# generic build rule for all .cpp under source
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+# Default rule
+all: $(TARGET)
+
+# Link executable
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+# Compile .cpp → .o (mirror folder structure under build/)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) -std=c++17 -Wall -Wextra -Iheaders -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# network subdir rule
-$(OBJ_DIR)/network/%.o: $(SRC_DIR)/network/%.cpp
-	@mkdir -p $(dir $@)
-	$(CXX) -std=c++17 -Wall -Wextra -Iheaders -c $< -o $@
-
+# Clean up
 clean:
-	rm -rf $(OBJ_DIR) $(BIN)
+	rm -rf $(BUILD_DIR) $(TARGET)
 
 .PHONY: all clean
+

@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <cstddef>
+#include <functional>
 #include "message/Message.h"
 
 namespace log {
@@ -17,11 +19,14 @@ namespace log {
         void appendMessage(const message::Message& msg);
         void deleteMessage(size_t index, bool sent);
 
-        // Read log into
+        // Return all messages
         std::vector<message::Message> readAll();
 
-        // Return all messages in one vector, ready for UI.
-        std::vector<std::string> getMessagesReadable(bool sent) const;
+        // Return vector of sent messages' strings.
+        std::vector<std::string> getSentStrings();
+
+        // Return vector of recieved messages' strings.
+        std::vector<std::string> getReceivedStrings();
 
     private:
 

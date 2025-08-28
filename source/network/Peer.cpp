@@ -1,5 +1,6 @@
 #include "network/Peer.h"
 #include <iostream>
+#include <sstream>
 #include <boost/asio.hpp>
 
 namespace network {
@@ -64,7 +65,7 @@ namespace network {
     }
 
 
-
+    // Behaviour on message recieve.
     void Peer::handleReceive(const boost::system::error_code& error,
                          std::size_t bytes_transferred) {
         // Error handling
@@ -95,5 +96,21 @@ namespace network {
         );
     }
 
+    // Turn Peer info to string for UI.
+    std::string Peer::toString() const {
+        std::ostringstream oss;
+
+        oss << "PeerID: " << peerID_
+            << " | Address: " << getAddress();
+
+        auto now = std::chrono::steady_clock::now();
+        auto secondsSinceActive = std::chrono::duration_cast<std::chrono::seconds>(
+            now - lastActiveTime_
+        ).count();
+
+        oss << " | Last active: " << secondsSinceActive << " seconds ago";
+
+        return oss.str();
+    }
 
 }

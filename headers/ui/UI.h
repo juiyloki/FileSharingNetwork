@@ -4,6 +4,7 @@
 #include "network/NetworkManager.h"
 #include "message/Message.h"
 #include "log/LogManager.h"
+#include <cstddef>
 
 namespace ui {
 

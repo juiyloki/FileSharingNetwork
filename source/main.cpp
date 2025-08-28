@@ -1,40 +1,35 @@
 #include "network/NetworkManager.h"
+#include "ui/UI.h"
 #include <iostream>
-#include <thread>
-#include <chrono>
-
-using namespace network;
+#include <string>
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cout << "Usage:\n"
-                  << "  " << argv[0] << " server <port>\n"
-                  << "  " << argv[0] << " client <host> <port>\n";
-        return 1;
+    using namespace network;
+
+    // Parse port from command line or use default
+    unsigned short port = 5555;
+    if (argc > 1) {
+        try {
+            port = static_cast<unsigned short>(std::stoi(argv[1]));
+        } catch (...) {
+            std::cerr << "Invalid port number. Using default 5555.\n";
+        }
     }
 
-    auto& net = NetworkManager::instance();
+    // Start the server
+    NetworkManager& net = NetworkManager::instance();
+    net.startServer(port);
 
-    if (std::string(argv[1]) == "server") {
-        if (argc < 3) { std::cerr << "Port required.\n"; return 1; }
-        unsigned short port = static_cast<unsigned short>(std::stoi(argv[2]));
-        net.startServer(port);
-        std::cout << "Server started on port " << port << "\n";
+    // Print startup info
+    std::cout << "P2P Node started on port " << port << std::endl;
+    std::cout << "Use another terminal to connect peers.\n";
 
-    } else if (std::string(argv[1]) == "client") {
-        if (argc < 4) { std::cerr << "Host + port required.\n"; return 1; }
-        std::string host = argv[2];
-        unsigned short port = static_cast<unsigned short>(std::stoi(argv[3]));
-        net.connectToPeer(host, port);
-        std::cout << "Client connecting to " << host << ":" << port << "\n";
+    // Run terminal UI
+    ui::UI ui(net);
+    ui.run();
 
-    } else {
-        std::cerr << "Unknown mode: " << argv[1] << "\n";
-        return 1;
-    }
+    // Shutdown cleanly on exit
+    net.shutdown();
 
-    // keep main alive
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
+    return 0;
 }

@@ -30,6 +30,9 @@ namespace network {
         // Broadcast to all peers
         void broadcastMessage(const std::string& message);
 
+        // Register a callback for when a peer disconnects.
+        void onPeerDisconnected(std::function<void(const std::string&)> handler);
+
         // Stop and close everything
         void shutdown();
 
@@ -48,6 +51,9 @@ namespace network {
 
         // Accept new connection
         void doAccept();
+
+        // Callback invoked when a peer disconnects (set by UI or higher level).
+        std::function<void(const std::string&)> peerDisconnectHandler_;
 
         // Handle peer disconnect
         void removePeer(const std::string& peerID);
