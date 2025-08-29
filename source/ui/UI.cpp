@@ -10,9 +10,9 @@ namespace ui {
     UI::UI(network::NetworkManager& net) : net_(net), logger_(logging::LogManager::instance()) {}
 
     void UI::showWelcome() {
-        std::cout << "=====================================\n";
+        std::cout << "\n=====================================\n";
         std::cout << "  Welcome to P2P Messenger\n";
-        std::cout << "=====================================\n\n";
+        std::cout << "=====================================\n";
         std::cout << "Your listening address: " << net_.getListeningAddress() << "\n";
         std::cout << "You can share the above address with other peers to connect.\n";
     }
@@ -48,6 +48,7 @@ namespace ui {
 
     void UI::connectPeerMenu() {
         std::string address;
+        std::cout << "\n-------------------\n";
         std::cout << "Enter peer address (ip:port): ";
         std::getline(std::cin, address);
         auto [ip, portStr] = parseAddress(address);
@@ -58,6 +59,7 @@ namespace ui {
         } catch (...) {
             std::cout << "Invalid port number\n";
         }
+        std::cout << "-------------------\n";
     }
 
     void UI::showMainMenu() {
@@ -74,11 +76,11 @@ namespace ui {
 
     void UI::listPeersMenu() {
         auto peers = net_.listPeerInfo();
+        std::cout << "\n-------------------\n";
         if (peers.empty()) {
             std::cout << "No peers connected.\n";
             return;
         }
-        std::cout << "\n-------------------\n";
         std::cout << "Connected peers:\n";
         for (size_t i = 0; i < peers.size(); ++i) {
             std::cout << i + 1 << ". " << peers[i] << "\n";
@@ -88,11 +90,11 @@ namespace ui {
 
     void UI::sendMessageMenu() {
         auto peers = net_.listPeerInfo();
+        std::cout << "\n-------------------\n";
         if (peers.empty()) {
             std::cout << "No connected peers available.\n";
             return;
         }
-        std::cout << "\n-------------------\n";
         std::cout << "Enter peer address: ";
         std::string peerAddr;
         std::getline(std::cin, peerAddr);
@@ -125,6 +127,7 @@ namespace ui {
     }
 
     void UI::broadcastMessageMenu() {
+        std::cout << "\n-------------------\n";
         auto peers = net_.listPeerInfo();
         if (peers.empty()) {
             std::cout << "No connected peers available to broadcast.\n";
@@ -142,14 +145,16 @@ namespace ui {
         logging::LogManager::instance().appendMessage(msg);
         net_.broadcastMessage(msg.encode());
         std::cout << "Message broadcasted to all peers and logged.\n";
+        std::cout << "-------------------\n";
     }
 
     void UI::inboxMenu() {
-        std::cout << "\nInbox Menu:\n";
+        std::cout << "\n-------------------\n";
+        std::cout << "Inbox Menu:\n";
         std::cout << "1. View Sent\n";
         std::cout << "2. View Received\n";
         std::cout << "0. Back\n";
-        std::cout << "Choice: ";
+        std::cout << "-------------------\n";
         int choice;
         std::cin >> choice;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -163,8 +168,10 @@ namespace ui {
 
     void UI::viewSent() {
         auto messages = logger_.getSentStrings();
+        std::cout << "\n-------------------\n";
         if (messages.empty()) {
             std::cout << "No sent messages.\n";
+            std::cout << "-------------------\n";
             return;
         }
         for (size_t i = 0; i < messages.size(); ++i) {
@@ -174,6 +181,7 @@ namespace ui {
         std::cout << "Enter message number to open, 0 to back: ";
         size_t choice;
         std::cin >> choice;
+        std::cout << "\n-------------------\n";
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         if (choice == 0 || choice > messages.size()) return;
 
@@ -192,6 +200,7 @@ namespace ui {
             std::cout << "Delete this message? (y/n): ";
             char del;
             std::cin >> del;
+            std::cout << "\n-------------------\n";
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             if (del == 'y' || del == 'Y') {
                 logger_.deleteMessage(choice - 1, true);
@@ -201,6 +210,7 @@ namespace ui {
 
     void UI::viewReceived() {
         auto messages = logger_.getReceivedStrings();
+        std::cout << "\n-------------------\n";
         if (messages.empty()) {
             std::cout << "No received messages.\n";
             return;
@@ -212,6 +222,7 @@ namespace ui {
         std::cout << "Enter message number to open, 0 to back: ";
         size_t choice;
         std::cin >> choice;
+        std::cout << "\n-------------------\n";
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         if (choice == 0 || choice > messages.size()) return;
 
@@ -230,11 +241,13 @@ namespace ui {
             std::cout << "Delete this message? (y/n): ";
             char del;
             std::cin >> del;
+            std::cout << "\n-------------------\n";
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             if (del == 'y' || del == 'Y') {
                 logger_.deleteMessage(choice - 1, false);
             }
         }
+        std::cout << "-------------------\n";
     }
 
     void UI::onMessageReceived(const message::Message& msg) {

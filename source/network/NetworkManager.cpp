@@ -62,6 +62,10 @@ namespace network {
                 peer->onMessage([this, peer](const std::string& msg) {
                     try {
                         message::Message m = message::Message::decode(msg);
+
+                        // CHANGE: Mark incoming messages as RECEIVED
+                        m = message::Message(m.getPeerID(), m.getTopic(), m.getContent(), message::MessageType::RECEIVED);
+
                         // Update peerID to the sender's listening address
                         {
                             std::lock_guard<std::mutex> lock(peersMutex_);
@@ -77,6 +81,7 @@ namespace network {
                                   << " | Content: " << m.getContent() << "\n";
                     } catch (...) {}
                 });
+
 
                 peer->onDisconnect([this, peer]() {
                     removePeer(peer->getPeerID());
@@ -115,6 +120,10 @@ namespace network {
             peer->onMessage([this, peer](const std::string& msg) {
                 try {
                     message::Message m = message::Message::decode(msg);
+
+                    // CHANGE: Mark incoming messages as RECEIVED
+                    m = message::Message(m.getPeerID(), m.getTopic(), m.getContent(), message::MessageType::RECEIVED);
+
                     // Update peerID if needed
                     {
                         std::lock_guard<std::mutex> lock(peersMutex_);
@@ -130,6 +139,7 @@ namespace network {
                               << " | Content: " << m.getContent() << "\n";
                 } catch (...) {}
             });
+
 
             peer->onDisconnect([this, peer]() {
                 removePeer(peer->getPeerID());
