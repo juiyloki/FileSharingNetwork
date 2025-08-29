@@ -1,2 +1,2 @@
 # FileSharingNetwork
-Encrypted Peer-to-Peer File Sharing Network in C++ [WIP]
+Peer-to-Peer Network in C++ [WIP]
