@@ -3,10 +3,13 @@
 #include <iostream>
 #include <string>
 
+// Entry point for the P2P messaging application.
+// Starts the server, runs the UI, and shuts down cleanly.
 int main(int argc, char* argv[]) {
     using namespace network;
 
-    // Parse port from command line or use default
+    // Parse port from command-line arguments, default to 5555.
+    // Relies on std::stoi exceptions for validation.
     unsigned short port = 5555;
     if (argc > 1) {
         try {
@@ -16,19 +19,15 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Start the server
+    // Initialize and start the server.
     NetworkManager& net = NetworkManager::instance();
     net.startServer(port);
 
-    // Print startup info
-    std::cout << "P2P Node started on port " << port << std::endl;
-    std::cout << "Use another terminal to connect peers.\n";
-
-    // Run terminal UI
+    // Run the terminal UI.
     ui::UI ui(net);
     ui.run();
 
-    // Shutdown cleanly on exit
+    // Clean up network resources.
     net.shutdown();
 
     return 0;

@@ -1,64 +1,71 @@
 #pragma once
+
+#include "message/Message.h"
+#include <functional>
+#include <mutex>
 #include <string>
 #include <vector>
-#include <mutex>
-#include <cstddef>
-#include <functional>
-#include "message/Message.h"
 
 namespace logging {
 
     class LogManager {
-
     public:
-
-        // Singleton instance
+        // Returns the singleton instance of LogManager.
         static LogManager& instance();
 
-        // Append/delete message from log
+        // Appends a message to the appropriate log (sent or received).
         void appendMessage(const message::Message& msg);
+
+        // Deletes a message at the specified index from either sent or received log.
         void deleteMessage(size_t index, bool sent);
 
-        // Return all messages
+        // Retrieves all messages (sent and received).
         std::vector<message::Message> readAll();
 
-        // Return vector of sent messages' strings.
+        // Returns a vector of strings representing sent messages.
         std::vector<std::string> getSentStrings();
 
-        // Return vector of recieved messages' strings.
+        // Returns a vector of strings representing received messages.
         std::vector<std::string> getReceivedStrings();
 
     private:
-
-        // Private constructor
+        // Private constructor to enforce singleton pattern.
         LogManager();
+
+        // Destructor to clean up resources.
         ~LogManager();
 
-        // Singleton prequations.
+        // Deleted copy constructor and assignment operator to prevent copying.
         LogManager(const LogManager&) = delete;
         LogManager& operator=(const LogManager&) = delete;
 
-        // In memory storage of messages.
+        // Ensures the log directory exists.
+        void ensureLogFolderExists();
+
+        // Saves sent messages to the log file.
+        void saveSentToFile();
+
+        // Saves received messages to the log file.
+        void saveReceivedToFile();
+
+        // Notifies the observer of a new message.
+        void notifyObserver(const message::Message& msg);
+
+        // In-memory storage for sent messages.
         std::vector<message::Message> sentMessages_;
+
+        // In-memory storage for received messages.
         std::vector<message::Message> receivedMessages_;
 
-        // For thread safety.
+        // Mutex for thread-safe file operations.
         std::mutex fileMutex_;
 
-        // Define log files.
+        // File paths for sent and received message logs.
         const std::string sentLogFile_ = "logs/messages_sent.log";
         const std::string receivedLogFile_ = "logs/messages_received.log";
 
-        // Ensure log folder is created.
-        void ensureLogFolderExists();
-
-        // Save to file
-        void saveSentToFile();
-        void saveReceivedToFile();
-
-        // Observer for UI notification of new message.
+        // Callback for notifying UI of new messages.
         std::function<void(const message::Message&)> observer_;
-        void notifyObserver(const message::Message& msg);
     };
 
-}
+}  // namespace logging

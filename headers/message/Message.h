@@ -1,51 +1,68 @@
 #pragma once
 
-#include <string>
 #include <chrono>
+#include <string>
 
 namespace message {
 
-    // Divide messages into two types.
     enum class MessageType { SENT, RECEIVED };
 
     class Message {
-
     public:
-
-        // Constructor.
+        // Constructs a Message with peer ID, topic, content, and type.
         Message(const std::string& peerID,
-                const std::string& topic,
-                const std::string& content,
-                MessageType type);
+            const std::string& topic,
+            const std::string& content,
+            MessageType type);
 
-        // Accessors.
+        // Returns the peer ID associated with the message.
         const std::string& getPeerID() const;
+
+        // Returns the topic of the message.
         const std::string& getTopic() const;
+
+        // Returns the content of the message.
         const std::string& getContent() const;
+
+        // Returns the type of the message (SENT or RECEIVED).
         MessageType getType() const;
+
+        // Returns the timestamp when the message was created.
         std::chrono::system_clock::time_point getTimestamp() const;
+
+        // Checks if the message has been read.
         bool isRead() const;
 
-        // Mutators.
+        // Marks the message as read.
         void markRead();
 
-        // Logging.
+        // Encodes the message into a string for logging.
         std::string encode() const;
+
+        // Decodes a string into a Message object.
         static Message decode(const std::string& line);
 
-        // UI.
+        // Returns a string representation of the message for UI display.
         std::string toString() const;
 
     private:
-
-        // Attributes
+        // Unique identifier of the peer who sent or received the message.
         std::string peerID_;
-        std::string topic_;
-        std::string content_;
-        MessageType type_;
-        bool read_;
-        std::chrono::system_clock::time_point timestamp_;
 
+        // Topic or subject of the message.
+        std::string topic_;
+
+        // Content of the message.
+        std::string content_;
+
+        // Type of the message (SENT or RECEIVED).
+        MessageType type_;
+
+        // Indicates whether the message has been read.
+        bool read_;
+
+        // Timestamp of when the message was created.
+        std::chrono::system_clock::time_point timestamp_;
     };
 
-}
+}  // namespace message
