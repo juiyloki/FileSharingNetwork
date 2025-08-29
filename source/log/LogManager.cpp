@@ -1,64 +1,78 @@
 #include "log/LogManager.h"
-#include <fstream>
 #include <filesystem>
-#include <sstream>
-#include <cstddef>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 
 namespace logging {
 
-    // Singleton instance.
+    // Returns the singleton instance of LogManager.
     LogManager& LogManager::instance() {
         static LogManager instance;
         return instance;
     }
 
-    // Private constructor for single instance.
+    // Constructs LogManager and loads existing messages from log files.
+    // Ignores parsing errors to ensure startup robustness.
     LogManager::LogManager() {
         ensureLogFolderExists();
-        // Load existing messages if files exist
+        // Load sent messages.
         std::ifstream sentFile(sentLogFile_);
         std::string line;
         while (std::getline(sentFile, line)) {
-            try { sentMessages_.emplace_back(message::Message::decode(line)); }
-            catch(...) {}
+            try {
+                sentMessages_.emplace_back(message::Message::decode(line));
+            } catch (...) {
+                // Ignore errors to handle malformed log entries.
+            }
         }
+        // Load received messages.
         std::ifstream recvFile(receivedLogFile_);
         while (std::getline(recvFile, line)) {
-            try { receivedMessages_.emplace_back(message::Message::decode(line)); }
-            catch(...) {}
+            try {
+                receivedMessages_.emplace_back(message::Message::decode(line));
+            } catch (...) {
+                // Ignore errors to handle malformed log entries.
+            }
         }
     }
 
-    // Saves current vectors to files.
+    // Saves all messages to log files on destruction.
     LogManager::~LogManager() {
         saveSentToFile();
         saveReceivedToFile();
     }
 
-    // Append a message to proper vector and save to file.
+    // Appends a message to the appropriate log (sent or received) and saves to file.
+    // Saves both log files for simplicity, even if only one is modified.
     void LogManager::appendMessage(const message::Message& msg) {
         std::lock_guard<std::mutex> lock(fileMutex_);
-        if (msg.getType() == message::MessageType::SENT)
+        if (msg.getType() == message::MessageType::SENT) {
             sentMessages_.push_back(msg);
-        else
+        } else {
             receivedMessages_.push_back(msg);
+        }
         saveSentToFile();
         saveReceivedToFile();
     }
 
-    // Delete a message from vector by its index and type (sent/received), then update file.
+    // Deletes a message at the specified index from either sent or received log.
+    // Updates the corresponding log file.
     void LogManager::deleteMessage(size_t index, bool sent) {
         std::lock_guard<std::mutex> lock(fileMutex_);
         auto& vec = sent ? sentMessages_ : receivedMessages_;
-        if (index >= vec.size()) return;  // safety check
+        if (index >= vec.size()) {
+            return;
+        }
         vec.erase(vec.begin() + index);
-        if (sent) saveSentToFile();
-        else saveReceivedToFile();
+        if (sent) {
+            saveSentToFile();
+        } else {
+            saveReceivedToFile();
+        }
     }
 
-
-    // Return all messages in memory as a single vector.
+    // Retrieves all messages (sent and received) as a single vector.
     std::vector<message::Message> LogManager::readAll() {
         std::lock_guard<std::mutex> lock(fileMutex_);
         std::vector<message::Message> all = sentMessages_;
@@ -66,37 +80,53 @@ namespace logging {
         return all;
     }
 
-    // Returns vector of readable strings for sent messages.
+    // Returns a vector of strings representing sent messages.
     std::vector<std::string> LogManager::getSentStrings() {
         std::lock_guard<std::mutex> lock(fileMutex_);
         std::vector<std::string> result;
-        for (auto& msg : sentMessages_) result.push_back(msg.toString());
+        for (auto& msg : sentMessages_) {
+            result.push_back(msg.toString());
+        }
         return result;
     }
 
-    // Returns vector of readable strings for received messages.
+    // Returns a vector of strings representing received messages.
     std::vector<std::string> LogManager::getReceivedStrings() {
         std::lock_guard<std::mutex> lock(fileMutex_);
         std::vector<std::string> result;
-        for (auto& msg : receivedMessages_) result.push_back(msg.toString());
+        for (auto& msg : receivedMessages_) {
+            result.push_back(msg.toString());
+        }
         return result;
     }
 
-    // Create logs directory if it does not exist.
+    // Ensures the log directory exists before file operations.
     void LogManager::ensureLogFolderExists() {
         std::filesystem::create_directories("logs");
     }
 
-    // Save sent messages vector to file.
+    // Saves sent messages to the log file, overwriting existing content.
     void LogManager::saveSentToFile() {
         std::ofstream file(sentLogFile_, std::ios::trunc);
-        for (auto& msg : sentMessages_) file << msg.encode() << "\n";
+        for (auto& msg : sentMessages_) {
+            file << msg.encode() << "\n";
+        }
     }
 
-    // Save received messages vector to file.
+    // Saves received messages to the log file, overwriting existing content.
     void LogManager::saveReceivedToFile() {
         std::ofstream file(receivedLogFile_, std::ios::trunc);
-        for (auto& msg : receivedMessages_) file << msg.encode() << "\n";
+        for (auto& msg : receivedMessages_) {
+            file << msg.encode() << "\n";
+        }
     }
 
-}
+    // Notifies the observer of a new message.
+    // Currently unused, reserved for future UI integration.
+    void LogManager::notifyObserver(const message::Message& msg) {
+        if (observer_) {
+            observer_(msg);
+        }
+    }
+
+}  // namespace logging
