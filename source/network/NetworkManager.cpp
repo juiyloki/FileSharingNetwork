@@ -1,4 +1,6 @@
 #include "network/NetworkManager.h"
+#include "message/Message.h"
+#include "ui/UI.h"
 #include "network/Peer.h"
 #include <iostream>
 #include <thread>
@@ -20,7 +22,20 @@ namespace network {
         shutdown();
     }
 
-    // Start a local server.
+    //Change: Return private PeerID
+    std::string NetworkManager::getOwnPeerID() const {
+        return ownPeerID_;
+    }
+
+    //Change: Return public listening address
+    std::string NetworkManager::getListeningAddress() const {
+        return ownAddress_;
+    }
+
+
+
+    //CHANGE: Compute local machine IP dynamically instead of showing 127.0.0.1.
+    //CHANGE: This allows the user to share an IP reachable by other machines in the LAN.
     void NetworkManager::startServer(unsigned short port) {
         boost::system::error_code ec;
         tcp::endpoint endpoint(tcp::v4(), port);
@@ -32,65 +47,166 @@ namespace network {
         acceptor_.listen(boost::asio::socket_base::max_listen_connections, ec);
         if (ec) { std::cerr << "Listen failed: " << ec.message() << "\n"; return; }
 
+        // Change: Generate unique PeerID is no longer needed, we rely on IP:port
+        // ownPeerID_ = "peer_" + std::to_string(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+
+        // Change: Determine the actual machine IP for display
+        try {
+            boost::asio::ip::tcp::socket tempSocket(ioContext_);
+            tempSocket.connect(tcp::endpoint(boost::asio::ip::address::from_string("8.8.8.8"), 53));
+            ownAddress_ = tempSocket.local_endpoint().address().to_string() + ":" + std::to_string(port);
+            tempSocket.close();
+        } catch (...) {
+            ownAddress_ = "unknown:" + std::to_string(port);
+        }
+
         doAccept();
 
         // Run in background thread
         std::thread([this]() { ioContext_.run(); }).detach();
     }
 
-    // Accept new connection.
-    void NetworkManager::doAccept() {
-        auto socket = std::make_shared<tcp::socket>(ioContext_);
-        acceptor_.async_accept(*socket, [this, socket](const boost::system::error_code& ec) {
-            if (!ec) {
-                auto peerID = socket->remote_endpoint().address().to_string() + ":" +
-                              std::to_string(socket->remote_endpoint().port());
-                auto peer = std::make_shared<Peer>(socket, peerID);
-                {
-                    std::lock_guard<std::mutex> lock(peersMutex_);
-                    peers_[peerID] = peer;
-                }
-                peer->onDisconnect([this, peerID]() { removePeer(peerID); });
-                peer->startReceiving();
-                std::cout << "New peer connected: " << peerID << "\n";
+    // Helper to split "ip:port" string
+std::pair<std::string, unsigned short> NetworkManager::splitAddress(const std::string& addr) const {
+    auto pos = addr.find(':');
+    if (pos == std::string::npos) {
+        // No port provided, use default 5555
+        return {addr, 5555};
+    }
+    std::string ip = addr.substr(0, pos);
+    unsigned short port = static_cast<unsigned short>(std::stoi(addr.substr(pos + 1)));
+    return {ip, port};
+}
+
+
+
+
+// Accept new connections
+void NetworkManager::doAccept() {
+    auto socket = std::make_shared<tcp::socket>(ioContext_);
+    acceptor_.async_accept(*socket, [this, socket](const boost::system::error_code& ec) {
+        if (!ec) {
+            std::string peerKey = socket->remote_endpoint().address().to_string() + ":" +
+                                  std::to_string(socket->remote_endpoint().port());
+
+            auto peer = std::make_shared<Peer>(socket, peerKey);
+
+            {
+                std::lock_guard<std::mutex> lock(peersMutex_);
+                peers_[peerKey] = peer;
             }
-            doAccept(); // keep accepting
-        });
-    }
 
+            peer->onMessage([this, peer](const std::string& msg) {
+                if (msg.rfind("HANDSHAKE:", 0) == 0) {
+                    std::string otherAddr = msg.substr(10);
 
-    std::string NetworkManager::getListeningAddress() const {
-        try {
-            return acceptor_.local_endpoint().address().to_string() + ":" +
-                   std::to_string(acceptor_.local_endpoint().port());
-        } catch (...) {
-            return "";
-        }
-    }
-
-
-    // Connect to peer by ID.
-    void NetworkManager::connectToPeer(const std::string& host, unsigned short port) {
-        auto socket = std::make_shared<tcp::socket>(ioContext_);
-        tcp::resolver resolver(ioContext_);
-        auto endpoints = resolver.resolve(host, std::to_string(port));
-        boost::asio::async_connect(*socket, endpoints,
-            [this, socket](const boost::system::error_code& ec, const tcp::endpoint& ep) {
-                if (!ec) {
-                    std::string peerID = ep.address().to_string() + ":" + std::to_string(ep.port());
-                    auto peer = std::make_shared<Peer>(socket, peerID);
-                    {
-                        std::lock_guard<std::mutex> lock(peersMutex_);
-                        peers_[peerID] = peer;
+                    std::lock_guard<std::mutex> lock(peersMutex_);
+                    if (peers_.find(otherAddr) == peers_.end()) {
+                        auto [ip, port] = splitAddress(otherAddr);
+                        connectToPeer(ip, port); // Bi-directional: connect back
                     }
-                    peer->onDisconnect([this, peerID]() { removePeer(peerID); });
-                    peer->startReceiving();
-                    std::cout << "Connected to peer: " << peerID << "\n";
-                } else {
-                    std::cerr << "Connect failed: " << ec.message() << "\n";
+                    return;
                 }
+
+                // Normal message
+                try {
+                    message::Message m = message::Message::decode(msg);
+                    logging::LogManager::instance().appendMessage(m);
+                    std::cout << "Received from " << peer->getPeerID()
+                              << " | Topic: " << m.getTopic()
+                              << " | Content: " << m.getContent() << "\n";
+                } catch (...) {}
             });
+
+            peer->onDisconnect([this, peer]() {
+                std::lock_guard<std::mutex> lock(peersMutex_);
+                for (auto it = peers_.begin(); it != peers_.end(); ++it) {
+                    if (it->second == peer) {
+                        peers_.erase(it);
+                        break;
+                    }
+                }
+                std::cout << "Peer disconnected\n";
+            });
+
+            peer->startReceiving();
+
+            peer->sendMessage("HANDSHAKE:" + getListeningAddress());
+
+            std::cout << "Accepted connection from " << peerKey << "\n";
+        }
+
+        doAccept(); // continue accepting
+    });
+}
+
+// Connect to a peer
+void NetworkManager::connectToPeer(const std::string& ip, unsigned short port) {
+    std::string peerAddr = ip + ":" + std::to_string(port);
+
+    {
+        std::lock_guard<std::mutex> lock(peersMutex_);
+        if (peers_.count(peerAddr)) return; // already connected
     }
+
+    auto socket = std::make_shared<tcp::socket>(ioContext_);
+    tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip), port);
+
+    socket->async_connect(endpoint, [this, socket, peerAddr](const boost::system::error_code& ec) {
+        if (ec) {
+            std::cerr << "Failed to connect to " << peerAddr << ": " << ec.message() << "\n";
+            return;
+        }
+
+        auto peer = std::make_shared<Peer>(socket, peerAddr);
+
+        {
+            std::lock_guard<std::mutex> lock(peersMutex_);
+            peers_[peerAddr] = peer;
+        }
+
+        peer->onMessage([this, peer](const std::string& msg) {
+            if (msg.rfind("HANDSHAKE:", 0) == 0) {
+                std::string otherAddr = msg.substr(10);
+
+                std::lock_guard<std::mutex> lock(peersMutex_);
+                if (peers_.find(otherAddr) == peers_.end()) {
+                    auto [ip, port] = splitAddress(otherAddr);
+                    connectToPeer(ip, port); // connect back if not already
+                }
+                return;
+            }
+
+            try {
+                message::Message m = message::Message::decode(msg);
+                logging::LogManager::instance().appendMessage(m);
+                std::cout << "Received from " << peer->getPeerID()
+                          << " | Topic: " << m.getTopic()
+                          << " | Content: " << m.getContent() << "\n";
+            } catch (...) {}
+        });
+
+        peer->onDisconnect([this, peer]() {
+            std::lock_guard<std::mutex> lock(peersMutex_);
+            for (auto it = peers_.begin(); it != peers_.end(); ++it) {
+                if (it->second == peer) {
+                    peers_.erase(it);
+                    break;
+                }
+            }
+            std::cout << "Peer disconnected\n";
+        });
+
+        peer->startReceiving();
+
+        peer->sendMessage("HANDSHAKE:" + getListeningAddress());
+
+        std::cout << "Connected to peer: " << peerAddr << "\n";
+    });
+}
+
+
+
 
     // Message sending.
     void NetworkManager::sendMessage(const std::string& peerID, const std::string& message) {
@@ -112,11 +228,22 @@ namespace network {
         peerDisconnectHandler_ = std::move(handler);
     }
 
-    // Safe peer removal.
+    // Remove peer safely from the map.
     void NetworkManager::removePeer(const std::string& peerID) {
+
+        //Change: Added lock for thread safety.
         std::lock_guard<std::mutex> lock(peersMutex_);
+
         auto it = peers_.find(peerID);
+
+        //Change: Only erase if exists.
         if (it != peers_.end()) {
+            //Change: Close socket before removal.
+            if (it->second->isConnected()) {
+                boost::system::error_code ignore;
+                it->second->sendMessage("disconnecting");
+            }
+
             peers_.erase(it);
             std::cout << "Peer removed: " << peerID << std::endl;
 
@@ -125,6 +252,8 @@ namespace network {
             }
         }
     }
+
+
 
     // Safe shutdown.
     void NetworkManager::shutdown() {

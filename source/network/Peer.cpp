@@ -65,29 +65,29 @@ namespace network {
     }
 
 
-    // Behaviour on message recieve.
+    // Handle incoming message and disconnects robustly
     void Peer::handleReceive(const boost::system::error_code& error,
-                         std::size_t bytes_transferred) {
-        // Error handling
+                             std::size_t bytes_transferred) {
+
+        //CHANGE: Handle disconnects gracefully to prevent segfault
         if (error) {
             if (error != boost::asio::error::operation_aborted) {
                 std::cerr << "Receive error from " << peerID_
-                      << ": " << error.message() << "\n";
+                          << ": " << error.message() << "\n";
             }
+
             boost::system::error_code ignore;
-            if (socket_) socket_->close(ignore);
+            if (socket_ && socket_->is_open()) socket_->close(ignore);
+
             if (disconnectHandler_) disconnectHandler_();
             return;
         }
 
-        // Update last active timestamp.
         lastActiveTime_ = std::chrono::steady_clock::now();
         std::string msg(buffer_.data(), bytes_transferred);
-        if (messageHandler_) {
-            messageHandler_(msg);
-        }
 
-        // Go back to active waiting for message arival.
+        if (messageHandler_) messageHandler_(msg);
+
         socket_->async_read_some(
             boost::asio::buffer(buffer_.data(), buffer_.size()),
             [this](const boost::system::error_code& ec, std::size_t bytes) {
@@ -96,12 +96,16 @@ namespace network {
         );
     }
 
-    // Turn Peer info to string for UI.
+
+
+    //Return Peer information string for UI
+    //CHANGE: Hide internal PeerID from UI
+    //CHANGE: Display only IP:Port and last active time
     std::string Peer::toString() const {
         std::ostringstream oss;
 
-        oss << "PeerID: " << peerID_
-            << " | Address: " << getAddress();
+        // Use only peer address for display
+        oss << "Address: " << getAddress();
 
         auto now = std::chrono::steady_clock::now();
         auto secondsSinceActive = std::chrono::duration_cast<std::chrono::seconds>(
@@ -112,5 +116,6 @@ namespace network {
 
         return oss.str();
     }
+
 
 }

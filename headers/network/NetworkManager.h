@@ -26,8 +26,9 @@ namespace network {
         std::string getListeningAddress() const;
 
 
-        // Connect to a remote peer
-        void connectToPeer(const std::string& host, unsigned short port);
+        //CHANGE: Revert connectToPeer to take two arguments: ip and port.
+        void connectToPeer(const std::string& ip, unsigned short port);
+
 
         // Send message to specific peer
         void sendMessage(const std::string& peerID, const std::string& message);
@@ -46,9 +47,20 @@ namespace network {
 
     private:
 
+		std::pair<std::string, unsigned short> splitAddress(const std::string& addr) const;
+
+
         // Private constructor
         NetworkManager();
         ~NetworkManager();
+
+        //Added member variable to store own peerID
+        //Change: Added own PeerID for private identity
+        std::string ownPeerID_;
+
+        //Change: Added own listening address for public info
+        std::string ownAddress_;
+
 
         // No copy/move
         NetworkManager(const NetworkManager&) = delete;

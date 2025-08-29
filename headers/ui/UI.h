@@ -12,6 +12,11 @@ namespace ui {
 
     public:
 
+        void invalidOptionMenu();
+
+        // New helper function for connecting to peer
+        void connectPeerMenu();
+
         // Explicit constructor.
         explicit UI(network::NetworkManager& net);
 
@@ -22,6 +27,10 @@ namespace ui {
         void onMessageReceived(const message::Message& msg);
 
     private:
+
+        //CHANGE: Add helper to parse single address string "ip:port"
+        std::pair<std::string, std::string> parseAddress(const std::string& addr) const;
+
 
         // Managers' references.
         network::NetworkManager& net_;

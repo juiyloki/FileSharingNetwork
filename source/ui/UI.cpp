@@ -17,106 +17,105 @@ namespace ui {
     // Display welcome message at startup.
     void UI::showWelcome() {
 
-        std::cout << "=====================================\n";
-        std::cout << "  Welcome to P2P Messenger\n";
-        std::cout << "=====================================\n\n";
 
-        // CHANGE: Show listening IP and port if available
-        auto address = net_.getListeningAddress();
-        if (!address.empty()) {
-            std::cout << "Listening on: " << address << "\n";
+
+        // Welcome message
+
+            std::cout << "=====================================\n";
+            std::cout << "  Welcome to P2P Messenger\n";
+            std::cout << "=====================================\n\n";
+
+            //Change: Display only public listening address for connection
+            std::cout << "Your listening address: " << net_.getListeningAddress() << "\n";
+
+            std::cout << "You can share the above address with other peers to connect.\n";
         }
 
-        std::cout << "You can share the above address with other peers to connect.\n\n";
-    }
 
 
 
-    // Main UI loop handling user input.
-    void UI::run() {
-        showWelcome();
-    while (true) {
-        // CHANGE: updated menu
-        std::cout << "============================";
-        std::cout << "1. Connect to peer\n";
-        std::cout << "2. List peers\n";
-        std::cout << "3. Send message\n";
-        std::cout << "4. Inbox\n";
-        std::cout << "0. Exit\n";
-        std::cout << "============================";
-        std::cout << "Choice: ";
-        int choice;
-        std::cin >> choice;
+
+
+
+
+
+        // Main UI loop handling user input.
+        void UI::run() {
+            //Change: Only call welcome and menu functions, no cout here
+            showWelcome();
+
+            while (true) {
+                showMainMenu();
+
+                int choice;
+                std::cin >> choice;
+                std::cin.ignore();
+
+                switch (choice) {
+                    case 1:
+                        connectPeerMenu();
+                    break;
+                    case 2:
+                        listPeersMenu();
+                    break;
+                    case 3:
+                        sendMessageMenu();
+                    break;
+                    case 4:
+                        inboxMenu();
+                    break;
+                    case 0:
+                        return;
+                    default:
+                        invalidOptionMenu();
+                    break;
+                }
+            }
+        }
+
+        //Change: New helper function to show invalid option message
+        void UI::invalidOptionMenu() {
+            std::cout << "Invalid option\n";
+        }
+
+    // File: source/ui/UI.cpp
+
+    //CHANGE: Ask for single address input (ip:port) and split it
+    void UI::connectPeerMenu() {
+        std::string address;
+        std::cout << "Enter peer address (ip:port): ";
+        std::cin >> address;
         std::cin.ignore();
 
-        switch (choice) {
-            case 1: { // CHANGE: new connect option
-                std::string ip;
-                unsigned short port;
-                std::cout << "Enter peer IP: ";
-                std::cin >> ip;
-                std::cout << "Enter peer port: ";
-                std::cin >> port;
-                std::cin.ignore();
+        auto [ip, portStr] = parseAddress(address); // Use NetworkManager parsing
+        unsigned short port = static_cast<unsigned short>(std::stoi(portStr));
 
-                net_.connectToPeer(ip, port);  // if void, cannot use in if
-                std::cout << "Attempted to connect to " << ip << ":" << port << "\n";
-                break;
-            }
-            case 2: {
-                auto peers = net_.listPeerInfo();
-                for (auto &p : peers) std::cout << p << "\n";
-
-                break;
-            }
-            case 3: { // CHANGE: added submenu for send message
-                int sub;
-                std::cout << "Send Message:\n";    // CHANGE
-                std::cout << "1. To one peer\n";   // CHANGE
-                std::cout << "2. To all peers\n";  // CHANGE
-                std::cout << "0. Back\n";          // CHANGE
-                std::cin >> sub;
-                std::cin.ignore();
-
-                if (sub == 1) { // CHANGE: send to single peer
-                    std::string peerId;
-                    std::string msg;
-                    std::cout << "Enter peer ID: ";
-                    std::cin >> peerId;
-                    std::cin.ignore();
-                    std::cout << "Enter message: ";
-                    std::getline(std::cin, msg);
-                    net_.sendMessage(peerId, msg);   // use sendMessage instead of sendMessageToPeer
-                } else if (sub == 2) { // CHANGE: broadcast
-                    std::string msg;
-                    std::cout << "Enter message: ";
-                    std::getline(std::cin, msg);
-                    net_.broadcastMessage(msg); // CHANGE
-                }
-                break;
-            }
-            case 4: { // CHANGE: inbox moved down
-                inboxMenu();
-                break;
-            }
-            case 0:
-                return;
-            default:
-                std::cout << "Invalid option\n";
-                break;
-        }
+        net_.connectToPeer(ip, port);
+        std::cout << "Attempted to connect to " << ip << ":" << port << "\n";
     }
-}
+
+    //CHANGE: Add const to implementation to match header.
+    std::pair<std::string,std::string> UI::parseAddress(const std::string& addr) const {
+        auto pos = addr.find(':');
+        if (pos == std::string::npos) return {addr, "5555"}; // default port
+        return {addr.substr(0, pos), addr.substr(pos + 1)};
+    }
+
+
+
+
 
 
     // Display main menu options.
     void UI::showMainMenu() {
-        std::cout << "\nMain Menu:\n";
-        std::cout << "1. List peers\n";
-        std::cout << "2. Send message\n";
-        std::cout << "3. Inbox\n";
+        std::cout << "\n-------------------\n";
+        std::cout << "Main Menu:\n";
+        std::cout << "1. Connect peer\n";
+        std::cout << "2. List peers\n";
+        std::cout << "3. Send message\n";
+        std::cout << "4. Inbox\n";
         std::cout << "0. Exit\n";
-        std::cout << "Choice: ";
+        std::cout << "-------------------\n\n";
     }
 
     // List connected peers using NetworkManager info.
@@ -132,7 +131,7 @@ namespace ui {
         }
     }
 
-    // Prompt user to send a message to a connected peer.
+    //CHANGE: Encode topic and content in message before sending
     void UI::sendMessageMenu() {
         auto peers = net_.listPeerInfo();
         if (peers.empty()) {
@@ -140,18 +139,11 @@ namespace ui {
             return;
         }
 
-        std::cout << "Enter Peer ID to send message: ";
-        std::string peerID;
-        std::getline(std::cin, peerID);
+        std::cout << "Enter peer address: ";
+        std::string peerAddr;
+        std::getline(std::cin, peerAddr);
 
-        auto it = std::find_if(peers.begin(), peers.end(),
-                    [&](const std::string& s){ return s.find(peerID) != std::string::npos; });
-        if (it == peers.end()) {
-            std::cout << "Peer not connected.\n";
-            return;
-        }
-
-        std::cout << "Enter topic (cannot be empty): ";
+        std::cout << "Enter topic: ";
         std::string topic;
         std::getline(std::cin, topic);
         if (topic.empty()) topic = "(empty)";
@@ -160,15 +152,17 @@ namespace ui {
         std::string content;
         std::getline(std::cin, content);
 
-        // Send via NetworkManager
-        net_.sendMessage(peerID, content);
+        //CHANGE: Encode topic and content together
+        message::Message msg(peerAddr, topic, content, message::MessageType::SENT);
+        logging::LogManager::instance().appendMessage(msg);
 
-        // Log sent message
-        message::Message msg(peerID, topic, content, message::MessageType::SENT);
-        logger_.appendMessage(msg);
+        net_.sendMessage(peerAddr, msg.encode());
 
         std::cout << "Message sent and logged.\n";
     }
+
+
+
 
     // Inbox menu to list sent and received messages.
     void UI::inboxMenu() {

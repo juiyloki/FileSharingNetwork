@@ -20,10 +20,6 @@ int main(int argc, char* argv[]) {
     NetworkManager& net = NetworkManager::instance();
     net.startServer(port);
 
-    // Print startup info
-    std::cout << "P2P Node started on port " << port << std::endl;
-    std::cout << "Use another terminal to connect peers.\n";
-
     // Run terminal UI
     ui::UI ui(net);
     ui.run();
