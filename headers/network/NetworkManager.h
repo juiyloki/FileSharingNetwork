@@ -10,9 +10,7 @@
 namespace network {
 
     class NetworkManager {
-
     public:
-
         using tcp = boost::asio::ip::tcp;
 
         // Singleton accessor
@@ -21,14 +19,11 @@ namespace network {
         // Start listening for incoming connections
         void startServer(unsigned short port);
 
-        // NetworkManager.h
-        std::string getOwnPeerID() const;
+        // Get listening address
         std::string getListeningAddress() const;
 
-
-        //CHANGE: Revert connectToPeer to take two arguments: ip and port.
+        // Connect to a peer
         void connectToPeer(const std::string& ip, unsigned short port);
-
 
         // Send message to specific peer
         void sendMessage(const std::string& peerID, const std::string& message);
@@ -36,43 +31,28 @@ namespace network {
         // Broadcast to all peers
         void broadcastMessage(const std::string& message);
 
-        // Register a callback for when a peer disconnects.
+        // Register callback for peer disconnection
         void onPeerDisconnected(std::function<void(const std::string&)> handler);
 
         // Stop and close everything
         void shutdown();
 
-        // Get Peer list.
+        // Get peer list
         std::vector<std::string> listPeerInfo() const;
 
     private:
-
-		std::pair<std::string, unsigned short> splitAddress(const std::string& addr) const;
-
-
         // Private constructor
         NetworkManager();
         ~NetworkManager();
-
-        //Added member variable to store own peerID
-        //Change: Added own PeerID for private identity
-        std::string ownPeerID_;
-
-        //Change: Added own listening address for public info
-        std::string ownAddress_;
-
 
         // No copy/move
         NetworkManager(const NetworkManager&) = delete;
         NetworkManager& operator=(const NetworkManager&) = delete;
 
-        // Accept new connection
+        // Accept new connections
         void doAccept();
 
-        // Callback invoked when a peer disconnects (set by UI or higher level).
-        std::function<void(const std::string&)> peerDisconnectHandler_;
-
-        // Handle peer disconnect
+        // Handle peer disconnection
         void removePeer(const std::string& peerID);
 
         // Attributes
@@ -80,7 +60,8 @@ namespace network {
         tcp::acceptor acceptor_;
         std::unordered_map<std::string, std::shared_ptr<Peer>> peers_;
         mutable std::mutex peersMutex_;
-
+        std::string ownAddress_; // Listening address (IP:port)
+        std::function<void(const std::string&)> peerDisconnectHandler_;
     };
 
 }

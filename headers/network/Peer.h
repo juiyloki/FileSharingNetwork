@@ -10,53 +10,40 @@
 namespace network {
 
     class Peer {
-
     public:
-
         using tcp = boost::asio::ip::tcp;
 
-        // Constructor.
-        Peer(std::shared_ptr<tcp::socket> socket, const std::string& peerID):
-            socket_(std::move(socket)),
-            peerID_(peerID),
-            lastActiveTime_(std::chrono::steady_clock::now()),
-            messageHandler_(nullptr),
-            disconnectHandler_(nullptr)
-        {}
+        // Constructor using listening address as peer ID
+        Peer(std::shared_ptr<tcp::socket> socket, const std::string& listeningAddress);
 
-        // Messaging.
+        // Messaging
         void sendMessage(const std::string& message);
         void startReceiving();
 
-        // Identification:
-        // IP:port and unique ID.
+        // Identification
         std::string getAddress() const;
         const std::string& getPeerID() const;
+        void setPeerID(const std::string& id); // Added setter for peerID
 
-        // State.
+        // State
         bool isConnected() const;
         std::chrono::steady_clock::time_point lastActive() const;
-    
-        // Callbacks:
-        // set by NetworkManager.
+
+        // Callbacks
         void onMessage(std::function<void(const std::string&)>&& handler);
         void onDisconnect(std::function<void()>&& handler);
 
-        // ToString converter for UI.
+        // UI display
         std::string toString() const;
- 
+
     private:
-
-        // Behaviour on message receive.
         void handleReceive(const boost::system::error_code& error, std::size_t bytes_transferred);
-    
-        // Attributes.
-        std::shared_ptr<boost::asio::ip::tcp::socket> socket_;
-        std::array<char, 1024> buffer_;
-        const std::string peerID_;
-        std::chrono::steady_clock::time_point lastActiveTime_;
 
-        // Event handlers.
+        // Attributes
+        std::shared_ptr<tcp::socket> socket_;
+        std::array<char, 1024> buffer_;
+        std::string peerID_; // Now stores listening address (IP:port)
+        std::chrono::steady_clock::time_point lastActiveTime_;
         std::function<void(const std::string&)> messageHandler_;
         std::function<void()> disconnectHandler_;
     };
