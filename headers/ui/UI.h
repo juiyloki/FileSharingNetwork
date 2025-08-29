@@ -31,7 +31,7 @@ namespace ui {
         //CHANGE: Add helper to parse single address string "ip:port"
         std::pair<std::string, std::string> parseAddress(const std::string& addr) const;
 
-
+        void broadcastMessageMenu();
         // Managers' references.
         network::NetworkManager& net_;
         logging::LogManager& logger_ = logging::LogManager::instance();

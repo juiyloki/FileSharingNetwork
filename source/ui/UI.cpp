@@ -3,6 +3,7 @@
 #include <limits>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 namespace ui {
 
@@ -27,7 +28,8 @@ namespace ui {
                 case 1: connectPeerMenu(); break;
                 case 2: listPeersMenu(); break;
                 case 3: sendMessageMenu(); break;
-                case 4: inboxMenu(); break;
+                case 4: broadcastMessageMenu(); break; // New option
+                case 5: inboxMenu(); break;
                 case 0: return;
                 default: invalidOptionMenu(); break;
             }
@@ -64,9 +66,10 @@ namespace ui {
         std::cout << "1. Connect peer\n";
         std::cout << "2. List peers\n";
         std::cout << "3. Send message\n";
-        std::cout << "4. Inbox\n";
+        std::cout << "4. Broadcast message\n"; // New option
+        std::cout << "5. Inbox\n";
         std::cout << "0. Exit\n";
-        std::cout << "-------------------\n\n";
+        std::cout << "-------------------\n";
     }
 
     void UI::listPeersMenu() {
@@ -75,10 +78,12 @@ namespace ui {
             std::cout << "No peers connected.\n";
             return;
         }
-        std::cout << "\nConnected peers:\n";
+        std::cout << "\n-------------------\n";
+        std::cout << "Connected peers:\n";
         for (size_t i = 0; i < peers.size(); ++i) {
             std::cout << i + 1 << ". " << peers[i] << "\n";
         }
+        std::cout << "-------------------\n";
     }
 
     void UI::sendMessageMenu() {
@@ -87,9 +92,24 @@ namespace ui {
             std::cout << "No connected peers available.\n";
             return;
         }
+        std::cout << "\n-------------------\n";
         std::cout << "Enter peer address: ";
         std::string peerAddr;
         std::getline(std::cin, peerAddr);
+
+        // Check if peerAddr is in connected peers
+        bool peerFound = false;
+        for (const auto& peer : peers) {
+            if (peer.find("Address: " + peerAddr) != std::string::npos) {
+                peerFound = true;
+                break;
+            }
+        }
+        if (!peerFound) {
+            std::cout << "Error: Peer " << peerAddr << " is not connected.\n";
+            return;
+        }
+
         std::cout << "Enter topic: ";
         std::string topic;
         std::getline(std::cin, topic);
@@ -101,6 +121,27 @@ namespace ui {
         logging::LogManager::instance().appendMessage(msg);
         net_.sendMessage(peerAddr, msg.encode());
         std::cout << "Message sent and logged.\n";
+        std::cout << "-------------------\n";
+    }
+
+    void UI::broadcastMessageMenu() {
+        auto peers = net_.listPeerInfo();
+        if (peers.empty()) {
+            std::cout << "No connected peers available to broadcast.\n";
+            return;
+        }
+
+        std::cout << "Enter topic: ";
+        std::string topic;
+        std::getline(std::cin, topic);
+        if (topic.empty()) topic = "(empty)";
+        std::cout << "Enter message content: ";
+        std::string content;
+        std::getline(std::cin, content);
+        message::Message msg(net_.getListeningAddress(), topic, content, message::MessageType::SENT);
+        logging::LogManager::instance().appendMessage(msg);
+        net_.broadcastMessage(msg.encode());
+        std::cout << "Message broadcasted to all peers and logged.\n";
     }
 
     void UI::inboxMenu() {
@@ -122,58 +163,76 @@ namespace ui {
 
     void UI::viewSent() {
         auto messages = logger_.getSentStrings();
-        if (messages.empty()) { std::cout << "No sent messages.\n"; return; }
-        for (size_t i = 0; i < messages.size(); ++i)
+        if (messages.empty()) {
+            std::cout << "No sent messages.\n";
+            return;
+        }
+        for (size_t i = 0; i < messages.size(); ++i) {
             std::cout << i + 1 << ". " << messages[i] << "\n";
+        }
+
         std::cout << "Enter message number to open, 0 to back: ";
         size_t choice;
         std::cin >> choice;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         if (choice == 0 || choice > messages.size()) return;
-        auto allMsgs = logger_.readAll();
-        size_t count = 0;
-        for (auto& msg : allMsgs) {
+
+        // Access sent messages directly from LogManager
+        auto sentMessages = logger_.readAll();
+        std::vector<message::Message> sentOnly;
+        for (const auto& msg : sentMessages) {
             if (msg.getType() == message::MessageType::SENT) {
-                ++count;
-                if (count == choice) {
-                    std::cout << "Topic: " << msg.getTopic() << "\n";
-                    std::cout << "Content: " << msg.getContent() << "\n";
-                    std::cout << "Delete this message? (y/n): ";
-                    char del;
-                    std::cin >> del;
-                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                    if (del == 'y' || del == 'Y') logger_.deleteMessage(choice - 1, true);
-                    break;
-                }
+                sentOnly.push_back(msg);
+            }
+        }
+        if (choice <= sentOnly.size()) {
+            const auto& msg = sentOnly[choice - 1];
+            std::cout << "Topic: " << msg.getTopic() << "\n";
+            std::cout << "Content: " << msg.getContent() << "\n";
+            std::cout << "Delete this message? (y/n): ";
+            char del;
+            std::cin >> del;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            if (del == 'y' || del == 'Y') {
+                logger_.deleteMessage(choice - 1, true);
             }
         }
     }
 
     void UI::viewReceived() {
         auto messages = logger_.getReceivedStrings();
-        if (messages.empty()) { std::cout << "No received messages.\n"; return; }
-        for (size_t i = 0; i < messages.size(); ++i)
+        if (messages.empty()) {
+            std::cout << "No received messages.\n";
+            return;
+        }
+        for (size_t i = 0; i < messages.size(); ++i) {
             std::cout << i + 1 << ". " << messages[i] << "\n";
+        }
+
         std::cout << "Enter message number to open, 0 to back: ";
         size_t choice;
         std::cin >> choice;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         if (choice == 0 || choice > messages.size()) return;
-        auto allMsgs = logger_.readAll();
-        size_t count = 0;
-        for (auto& msg : allMsgs) {
+
+        // Access received messages directly from LogManager
+        auto receivedMessages = logger_.readAll();
+        std::vector<message::Message> receivedOnly;
+        for (const auto& msg : receivedMessages) {
             if (msg.getType() == message::MessageType::RECEIVED) {
-                ++count;
-                if (count == choice) {
-                    std::cout << "Topic: " << msg.getTopic() << "\n";
-                    std::cout << "Content: " << msg.getContent() << "\n";
-                    std::cout << "Delete this message? (y/n): ";
-                    char del;
-                    std::cin >> del;
-                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                    if (del == 'y' || del == 'Y') logger_.deleteMessage(choice - 1, false);
-                    break;
-                }
+                receivedOnly.push_back(msg);
+            }
+        }
+        if (choice <= receivedOnly.size()) {
+            const auto& msg = receivedOnly[choice - 1];
+            std::cout << "Topic: " << msg.getTopic() << "\n";
+            std::cout << "Content: " << msg.getContent() << "\n";
+            std::cout << "Delete this message? (y/n): ";
+            char del;
+            std::cin >> del;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            if (del == 'y' || del == 'Y') {
+                logger_.deleteMessage(choice - 1, false);
             }
         }
     }
